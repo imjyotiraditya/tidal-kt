@@ -41,9 +41,15 @@ object WebRequests {
     @Throws(HttpException::class)
     fun request(con: HttpsURLConnection): Response {
         if (con.responseCode < 400) {
-            return Response(con.responseCode, con.inputStream.bufferedReader().use(BufferedReader::readText))
+            return Response(
+                con.responseCode,
+                con.inputStream.bufferedReader().use(BufferedReader::readText)
+            )
         } else {
-            throw HttpException(con.responseCode, con.errorStream.bufferedReader().use(BufferedReader::readText))
+            throw HttpException(
+                con.responseCode,
+                con.errorStream.bufferedReader().use(BufferedReader::readText)
+            )
         }
     }
 

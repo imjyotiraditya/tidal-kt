@@ -11,7 +11,6 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.*
 import kotlin.collections.HashMap
-import kotlin.collections.HashSet
 
 class TidalApi(val session: Session) {
 
@@ -30,7 +29,7 @@ class TidalApi(val session: Session) {
 
         fun setAuth(userId: Long, countryCode: String, accessToken: String, refreshToken: String) {
             this.userId = userId
-            this.countryCode =  countryCode
+            this.countryCode = countryCode
             this.accessToken = accessToken
             this.refreshToken = refreshToken
         }
@@ -81,46 +80,90 @@ class TidalApi(val session: Session) {
     }
 
     fun getTracks(reset: Boolean): List<Track> {
-        return parseFromJSONArray(Requests.CollectionRequest(this, Endpoints.TRACKS, reset, session.userId).execute(), ::buildTrackFromJSON)
+        return parseFromJSONArray(
+            Requests.CollectionRequest(
+                this,
+                Endpoints.TRACKS,
+                reset,
+                session.userId
+            ).execute(), ::buildTrackFromJSON
+        )
     }
 
     fun getArtists(reset: Boolean): List<Artist> {
-        return parseFromJSONArray(Requests.CollectionRequest(this, Endpoints.ARTISTS, reset, session.userId).execute(), ::buildArtistFromJSON)
+        return parseFromJSONArray(
+            Requests.CollectionRequest(
+                this,
+                Endpoints.ARTISTS,
+                reset,
+                session.userId
+            ).execute(), ::buildArtistFromJSON
+        )
     }
 
     fun getArtist(artist: Long, reset: Boolean): List<Track> {
-        return parseFromJSONArray(Requests.CollectionRequest(this, Endpoints.ARTIST_TRACKS, reset, artist).execute(), ::buildTrackFromJSON)
+        return parseFromJSONArray(
+            Requests.CollectionRequest(
+                this,
+                Endpoints.ARTIST_TRACKS,
+                reset,
+                artist
+            ).execute(), ::buildTrackFromJSON
+        )
     }
 
     fun getMixes(): List<Playlist> {
-        val json = JSONObject(Requests.ActionRequest(this, Endpoints.HOME).execute().value).getJSONArray("rows")
+        val json = JSONObject(
+            Requests.ActionRequest(this, Endpoints.HOME).execute().value
+        ).getJSONArray("rows")
         for (i in 0 until json.length()) {
             val modules = json.getJSONObject(i).getJSONArray("modules")
             for (j in 0 until modules.length()) {
                 val module = modules.getJSONObject(j)
                 if (module.getString("type") != "MIX_LIST")
                     continue
-                return parseFromJSONArray(module.getJSONObject("pagedList").getJSONArray("items"), ::buildMixFromJSON)
+                return parseFromJSONArray(
+                    module.getJSONObject("pagedList").getJSONArray("items"),
+                    ::buildMixFromJSON
+                )
             }
         }
         return emptyList()
     }
 
     fun getMix(uuid: String, reset: Boolean): List<Track> {
-        return parseFromJSONArray(Requests.CollectionRequest(this, Endpoints.MIX, reset, uuid).execute(), ::buildTrackFromJSON)
+        return parseFromJSONArray(
+            Requests.CollectionRequest(this, Endpoints.MIX, reset, uuid).execute(),
+            ::buildTrackFromJSON
+        )
     }
 
     fun getPlaylists(reset: Boolean): List<Playlist> {
-        return parseFromJSONArray(Requests.CollectionRequest(this, Endpoints.PLAYLISTS, reset, session.userId).execute(), ::buildPlaylistFromJSON)
+        return parseFromJSONArray(
+            Requests.CollectionRequest(
+                this,
+                Endpoints.PLAYLISTS,
+                reset,
+                session.userId
+            ).execute(), ::buildPlaylistFromJSON
+        )
     }
 
     fun getPlaylist(uuid: String, reset: Boolean): List<Track> {
-        return parseFromJSONArray(Requests.CollectionRequest(this, Endpoints.PLAYLIST, reset, uuid).execute(), ::buildTrackFromJSON)
+        return parseFromJSONArray(
+            Requests.CollectionRequest(this, Endpoints.PLAYLIST, reset, uuid).execute(),
+            ::buildTrackFromJSON
+        )
     }
 
     fun query(query: String, reset: Boolean): List<Track> {
         val tracks =
-            Requests.CollectionRequest(this, Endpoints.QUERY, reset, URLEncoder.encode(query, "UTF-8")).execute()
+            Requests.CollectionRequest(
+                this,
+                Endpoints.QUERY,
+                reset,
+                URLEncoder.encode(query, "UTF-8")
+            ).execute()
         return parseFromJSONArray(tracks, ::buildTrackFromJSON)
     }
 
@@ -149,7 +192,9 @@ class TidalApi(val session: Session) {
             json.getJSONArray("artists").getJSONObject(0).getString("name"),
             json.getString("title"),
             json.getLong("duration") * 1000,
-            TIDAL_RESOURCES_URL.format(json.getJSONObject("album").getString("cover").replace("-", "/")),
+            TIDAL_RESOURCES_URL.format(
+                json.getJSONObject("album").getString("cover").replace("-", "/")
+            ),
             json.getString("url"),
             session.likesTrackIds.contains(json.getLong("id"))
         )
@@ -159,7 +204,9 @@ class TidalApi(val session: Session) {
         return Artist(
             json.getLong("id"),
             json.getString("name"),
-            if (json.isNull("picture")) "null" else TIDAL_RESOURCES_URL.format(json.getString("picture").replace("-", "/")),
+            if (json.isNull("picture")) "null" else TIDAL_RESOURCES_URL.format(
+                json.getString("picture").replace("-", "/")
+            ),
             json.getString("url")
         )
     }
@@ -169,7 +216,8 @@ class TidalApi(val session: Session) {
             json.getString("uuid"),
             json.getString("title"),
             json.getLong("duration") * 1000,
-            TIDAL_RESOURCES_URL.format(json.getString("squareImage").replace("-", "/")))
+            TIDAL_RESOURCES_URL.format(json.getString("squareImage").replace("-", "/"))
+        )
     }
 
     private fun buildMixFromJSON(json: JSONObject): Playlist {
@@ -191,7 +239,8 @@ class TidalApi(val session: Session) {
     private fun like(trackId: String): Boolean {
         val result = WebRequests.post(
             Endpoints.LIKE.route.format(session.userId),
-            "trackIds=$trackId&onArtifactNotFound=FAIL&countryCode=${session.countryCode}", mapOf("Authorization" to "Bearer ${session.accessToken}")
+            "trackIds=$trackId&onArtifactNotFound=FAIL&countryCode=${session.countryCode}",
+            mapOf("Authorization" to "Bearer ${session.accessToken}")
         )
         if (result.status == 200) {
             session.likesTrackIds.add(trackId.toLong())
@@ -201,7 +250,8 @@ class TidalApi(val session: Session) {
     }
 
     private fun unlike(trackId: String): Boolean {
-        val result = Requests.ActionRequest(this, Endpoints.UNLIKE, session.userId, trackId).execute()
+        val result =
+            Requests.ActionRequest(this, Endpoints.UNLIKE, session.userId, trackId).execute()
         if (result.status == 200) {
             session.likesTrackIds.remove(trackId.toLong())
             return true
